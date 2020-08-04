@@ -68,7 +68,7 @@ Issue считается старым, если он не закрывается
 выполнением тестового задания! Очень надеемся, оно покажется вам интересным :)
 
 E-mail:
-[job@playrix.com](job@playrix.com)
+[job@playrix.com](mailto:job@playrix.com)
 
 Сайт о работе в Playrix:
 [job.playrix.com](https://job.playrix.com/)
