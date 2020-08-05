@@ -1,17 +1,18 @@
 import requests
 import json
 import random
+import time
 
 # TODO1: сделать в виде параметров командной строки
 repoURL = "http://github.com/django/django"       #if is public 
-#repoURL = "https://api.github.com/user"       #if is public 
 
 # TODO3: добавить проверку формата вводимой даты с автоисправлением, если возможно
-startDate = '2009-08-12'
-stopDate = '2020-08-12'
+startDate = '2014-12-22'
+stopDate = '2017-01-19'
 
 branch = 'master'
 
+# список браузеров для ротации в запросе для преодоления защиты от скраперов
 user_agent_list = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
@@ -21,7 +22,7 @@ user_agent_list = [
 ]
 url = 'https://httpbin.org/headers'
 
-# TODO1: заготовка для командной строки
+# TODO1: заготовка для командной строки из скрипта, который дает результаты по собственному репозиторию автора
 '''def count_user_commits(user):
     r = requests.get('https://api.github.com/users/%s/repos' % user)
     repos = json.loads(r.content)
@@ -74,45 +75,89 @@ if __name__ == '__main__':
 
 '''
 
-# TODO2: проверить количество коммитов для разных промежутков времени
-params = repoURL, startDate, stopDate, branch
-#https://github.com/django/django/graphs/contributors?from=2007-12-01&to=2010-10-28&type=c
-#r = requests.get(repoURL+'/'+branch+'/graphs/contributors?from='+startDate+'&to='+stopDate+'&type=c')
-
+# Выбираем случайный браузер из списка
 user_agent = random.choice(user_agent_list)
-#Set the headers 
+
+# Устанавливаем заголовки 
 headers = {'User-Agent': user_agent}
-#Make the request
-#r = requests.get(repoURL+'/contributors?branch='+branch+'&from='+startDate+'&to='+stopDate+'&type=c', headers=headers)
-#r = requests.get(repoURL+'/contributors', headers=headers)
-r = requests.get('https://api.github.com/repos/django/django/contributors?branch=master&from=2007-12-01&to=2010-10-28&type=c')
+
+# Создаем запрос с параметрами: 
+# startDate - дата начала периода
+# stopDate - дата конца периода
+# branch - ветка
+# 
+# Начинаем с первой страницы, количество результатов на страницу 100
+r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': 1, 'per_page': 100}, headers=headers)
+
+# Парсим в JSON
+data=r.json()
+
+# m - количество страниц в результате запроса
+m = 0
+while 'next' in r.links.keys():
+    # получаем следующую страницу
+    r = requests.get(r.links['next']['url'], proxies={"http":"http://193.178.249.121:5836"})
+    # добавляем к нашим результатам
+    data.extend(r.json())
+    m+=1
+    # таймаут, чтобы не превысить количество запросов в секунду
+    time.sleep(0.5) 
+
+# ----- DEBUG start ------  
+#print(r.json())
+#print('Всего ',m,'страниц')
+# ----- DEBUG end  -------
+
 
 # TODO4: убрать из релиза
-f= open("scrap.json","w",encoding='utf-8')
+# запись в файл для анализа результата запроса и формирования кода
+f=open("scrap.json","w",encoding='utf-8')
+
 
 if r.status_code == 200:
     print('Success!')
-    #commits = json.loads(r.content)
-    #print(r.json())
-    str = json.loads(r.text)
-    #print(json.dumps(parsed, indent=4, sort_keys=True))
-    ss = json.dumps(str, indent=4, sort_keys=True)
-    #print(str[0]["login"]+' has '+str(str[0]["contributions"])+' commits.')
+    
+    # ----- DEBUG start ------ 
+    #str = json.loads(r.text)
+    #print(json.dumps(str, indent=4, sort_keys=True))
+    #ss = json.dumps(str, indent=4, sort_keys=True)
+    print(json.dumps(data, indent=4, sort_keys=True))
+    # ----- DEBUG end  -------
+       
+    # форматирование результата в удобном для чтения виде для сохранения в файл  
+    ss = json.dumps(data, indent=4, sort_keys=True)
+   
+    # k - переменная для формирования списка из 30 авторов
     k = 0
-    userc = 'user'
-    cmtsc = 'commits'
-    print(f" {userc:23} {cmtsc:8}")
-    while k < 30:
-        user = str[k]["login"]
-        cmts = str[k]["contributions"]
-        print(f"{k+1:3} {user:20} {cmts:8}")
-        k += 1
-    #print(type(str[0]["login"]))
+    
+    # N для хранения количества записей в JSON
+    N = len(data)
+    
+    # Будущий список с именами авторов
+    names = []
+    
+    # Формируем список авторов
+    for i in range(N):
+        names.append(str[i]['commit']['author']['name'])
+       
+    # На основе списка авторов names формируем словарь, в котором напротив каждого имени автора его количество коммитов
+    # Автор добавляется в словарь автоматически, если их еще нет, в ином случае количество его коммитов увеличивается на 1
+    d = dict()
+    for c in names:
+        d[c] = d.get(c,0) + 1
+    
+    # Сортируем авторов по количеству их коммитов, в убывающем порядке
+    # Получаем список, где каждый элемент в виде:
+    # номер. Имя_автора   количево_коммитов
+    listofTuples = sorted(d.items(), reverse=True,  key=lambda x: x[1])
+    for elem in listofTuples :
+        print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
+        k+=1
+
+    #записываем результат в виде форматированного JSON в файл и сохраняем его
     f.write(ss)
     f.close()
-    #start1 = str.find('div id="contributors')
-    #start2 = str.find('ol class="contrib-data list-style-none',start1)
-    #print(start2)
+
 elif r.status_code == 404:
-#TODO5: продумать надписи об ошибках
+#TODO5: продумать надписи об ошибках поинтереснее
     print('Not Found.')
