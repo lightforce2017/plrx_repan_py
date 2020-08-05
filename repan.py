@@ -22,6 +22,7 @@ user_agent_list = [
 ]
 url = 'https://httpbin.org/headers'
 
+# ============== Временный код start ==============
 # TODO1: заготовка для командной строки из скрипта, который дает результаты по собственному репозиторию автора
 '''def count_user_commits(user):
     r = requests.get('https://api.github.com/users/%s/repos' % user)
@@ -74,6 +75,7 @@ if __name__ == '__main__':
     print "Total commits: %d" % total
 
 '''
+# ============== Временный код end  ==============
 
 # Выбираем случайный браузер из списка
 user_agent = random.choice(user_agent_list)
