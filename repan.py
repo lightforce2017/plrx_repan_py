@@ -24,6 +24,8 @@ url = 'https://httpbin.org/headers'
 
 # ============== Временный код start ==============
 # TODO1: заготовка для командной строки из скрипта, который дает результаты по собственному репозиторию автора
+# https://api.github.com/repos/django/django/commits?until=2010-10-10&since=2009-01-01&branch=master&page=25&per_page=100
+
 '''def count_user_commits(user):
     r = requests.get('https://api.github.com/users/%s/repos' % user)
     repos = json.loads(r.content)
@@ -89,6 +91,10 @@ headers = {'User-Agent': user_agent}
 # branch - ветка
 # 
 # Начинаем с первой страницы, количество результатов на страницу 100
+'''
+#########################################################
+#                  request для авторов коммитов
+#########################################################
 r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': 1, 'per_page': 100}, headers=headers)
 
 # Парсим в JSON
@@ -157,6 +163,42 @@ if r.status_code == 200:
         k+=1
 
     #записываем результат в виде форматированного JSON в файл и сохраняем его
+    f.write(ss)
+    f.close()
+'''
+
+#########################################################
+#                  pull request
+#########################################################
+r = requests.get('https://api.github.com/repos/django/django/pulls?q=is%3Apr+is%3Aclosed', params={'createdAt': startDate, 'closedAt' : stopDate, 'default_branch': branch, 'is': 'pr'}, headers=headers)
+
+
+f=open("scrap.json","w",encoding='utf-8')
+
+if r.status_code == 200:
+    print('Success!')
+    str = json.loads(r.text)
+    #filter1 = str[i]['created_at']
+    '''N = len(str)
+    tstr = []
+    for i in range(N):
+        print(str[i]['created_at'])
+        if (str[i]['created_at'] >= startDate):
+            tstr.append(str[i])
+    
+    
+    #str = filter_cdate
+    print(tstr)'''
+    filter_cdate = [x for x in str if x['created_at'] >= startDate]
+    str = filter_cdate
+    #filterNoClosed = [x for x in str if x['closed_at']!=None]
+    #str = filterNoClosed
+    #print(str)
+    #filterClosed = [x for x in str if x['closed_at']<=stopDate]
+    #str = filterClosed
+    #print(str)
+    #print(json.dumps(str, indent=4, sort_keys=True))
+    ss = json.dumps(str, indent=4, sort_keys=True)
     f.write(ss)
     f.close()
 
