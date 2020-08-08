@@ -25,6 +25,7 @@ url = 'https://httpbin.org/headers'
 # ============== Временный код start ==============
 # TODO1: заготовка для командной строки из скрипта, который дает результаты по собственному репозиторию автора
 # https://api.github.com/repos/django/django/commits?until=2010-10-10&since=2009-01-01&branch=master&page=25&per_page=100
+# curl -H "Accept: application/vnd.github.cloak-preview" https://api.github.com/search/commits?q=repo:django/django+author-date:<2016-01-01
 
 '''def count_user_commits(user):
     r = requests.get('https://api.github.com/users/%s/repos' % user)
@@ -83,7 +84,7 @@ if __name__ == '__main__':
 user_agent = random.choice(user_agent_list)
 
 # Устанавливаем заголовки 
-headers = {'User-Agent': user_agent}
+headers = {'User-Agent': user_agent, 'Accept': 'application/vnd.github.cloak-preview'}
 
 # Создаем запрос с параметрами: 
 # startDate - дата начала периода
@@ -91,117 +92,80 @@ headers = {'User-Agent': user_agent}
 # branch - ветка
 # 
 # Начинаем с первой страницы, количество результатов на страницу 100
-'''
+
 #########################################################
 #                  request для авторов коммитов
 #########################################################
 r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': 1, 'per_page': 100}, headers=headers)
+#r = requests.get('https://api.github.com/search/commits', params={'repo': 'django/django', 'until': stopDate, 'author-date': '<2016-01-01'}, headers=headers)
+#r = requests.get('https://api.github.com/search/commits', params={'q': 'repo:django/django+author-date:<2016-01-01'}, headers=headers)
 
 # Парсим в JSON
 data=r.json()
 
-# m - количество страниц в результате запроса
-m = 0
-while 'next' in r.links.keys():
-    # получаем следующую страницу
-    r = requests.get(r.links['next']['url'], proxies={"http":"http://193.178.249.121:5836"})
-    # добавляем к нашим результатам
-    data.extend(r.json())
-    m+=1
-    # таймаут, чтобы не превысить количество запросов в секунду
-    time.sleep(0.5) 
+#str = json.loads(r.text)
+# N для хранения количества записей в JSON
+N = len(data)
 
-# ----- DEBUG start ------  
-#print(r.json())
-#print('Всего ',m,'страниц')
-# ----- DEBUG end  -------
+# Будущий список с именами авторов
+names = []
 
+# Формируем список авторов
+for i in range(N):
+    names.append(data[i]['commit']['author']['name'])
+# На основе списка авторов names формируем словарь, в котором напротив каждого имени автора его количество коммитов
+# Автор добавляется в словарь автоматически, если их еще нет, в ином случае количество его коммитов увеличивается на 1
+d = dict() 
+for c in names:
+    d[c] = d.get(c,0) + 1
 
-# TODO4: убрать из релиза
-# запись в файл для анализа результата запроса и формирования кода
-f=open("scrap.json","w",encoding='utf-8')
-
-
-if r.status_code == 200:
-    print('Success!')
-    
-    # ----- DEBUG start ------ 
-    #str = json.loads(r.text)
-    #print(json.dumps(str, indent=4, sort_keys=True))
-    #ss = json.dumps(str, indent=4, sort_keys=True)
-    print(json.dumps(data, indent=4, sort_keys=True))
-    # ----- DEBUG end  -------
-       
-    # форматирование результата в удобном для чтения виде для сохранения в файл  
-    ss = json.dumps(data, indent=4, sort_keys=True)
    
-    # k - переменная для формирования списка из 30 авторов
-    k = 0
-    
-    # N для хранения количества записей в JSON
-    N = len(data)
-    
-    # Будущий список с именами авторов
+
+# m - количество страниц в результате запроса
+m = 2
+while data != []:
+    data = []
     names = []
-    
-    # Формируем список авторов
+    # получаем следующую страницу
+    r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100}, headers=headers)
+    # добавляем к нашим результатам
+    data = r.json()
+    N = len(data)
     for i in range(N):
-        names.append(str[i]['commit']['author']['name'])
-       
-    # На основе списка авторов names формируем словарь, в котором напротив каждого имени автора его количество коммитов
-    # Автор добавляется в словарь автоматически, если их еще нет, в ином случае количество его коммитов увеличивается на 1
-    d = dict()
+        names.append(data[i]['commit']['author']['name'])
     for c in names:
         d[c] = d.get(c,0) + 1
     
-    # Сортируем авторов по количеству их коммитов, в убывающем порядке
-    # Получаем список, где каждый элемент в виде:
-    # номер. Имя_автора   количево_коммитов
-    listofTuples = sorted(d.items(), reverse=True,  key=lambda x: x[1])
-    for elem in listofTuples :
-        print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
-        k+=1
+    print('Добавлена страница '+str(m),end="\r")
+    m+=1
+    # таймаут, чтобы не превысить количество запросов в секунду
+    
+    time.sleep(0.5) 
+m -=1
+# ----- DEBUG start ------  
+#print(r.json())
+print('\nВсего ',m,'страниц\n\n')
+# ----- DEBUG end  -------
 
-    #записываем результат в виде форматированного JSON в файл и сохраняем его
-    f.write(ss)
-    f.close()
+
+
+# Сортируем авторов по количеству их коммитов, в убывающем порядке
+# Получаем список, где каждый элемент в виде:
+# номер. Имя_автора   количево_коммитов
+k = 0
+listofTuples = sorted(d.items(), reverse=True,  key=lambda x: x[1])
+for elem in listofTuples :
+    if k>=30:
+        break
+    print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
+    k+=1
+
 '''
-
-#########################################################
-#                  pull request
-#########################################################
-r = requests.get('https://api.github.com/repos/django/django/pulls?q=is%3Apr+is%3Aclosed', params={'createdAt': startDate, 'closedAt' : stopDate, 'default_branch': branch, 'is': 'pr'}, headers=headers)
-
-
+# TODO4: убрать из релиза
+# запись в файл для анализа результата запроса и формирования кода
 f=open("scrap.json","w",encoding='utf-8')
-
-if r.status_code == 200:
-    print('Success!')
-    str = json.loads(r.text)
-    #filter1 = str[i]['created_at']
-    '''N = len(str)
-    tstr = []
-    for i in range(N):
-        print(str[i]['created_at'])
-        if (str[i]['created_at'] >= startDate):
-            tstr.append(str[i])
-    
-    
-    #str = filter_cdate
-    print(tstr)'''
-    filter_cdate = [x for x in str if x['created_at'] >= startDate]
-    str = filter_cdate
-    #filterNoClosed = [x for x in str if x['closed_at']!=None]
-    #str = filterNoClosed
-    #print(str)
-    #filterClosed = [x for x in str if x['closed_at']<=stopDate]
-    #str = filterClosed
-    #print(str)
-    #print(json.dumps(str, indent=4, sort_keys=True))
-    ss = json.dumps(str, indent=4, sort_keys=True)
-    f.write(ss)
-    f.close()
-
-elif r.status_code == 404:
-#TODO5: продумать надписи об ошибках поинтереснее
-    print('Not Found.')
+ss = json.dumps(data, indent=4, sort_keys=True)
+#print(ss)
+f.write(ss)
+f.close()
+'''
