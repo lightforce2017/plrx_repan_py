@@ -119,9 +119,17 @@ def countCommits(repoURL, startDate, stopDate, branch):
     # startDate - start of period
     # stopDate - end of period
     # branch - branch for search within ('master' bu deafault)
-    # 
+    
     # Starting from the first page, results per page 100
-    r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': 1, 'per_page': 100})
+    prm = {'branch': branch, 'page': 1, 'per_page': 100}
+    if startDate == '':
+        if stopDate != '':
+            prm.update({'until': stopDate})
+    elif if stopDate == '':
+        prm.update({'since': startDate})
+    else:
+        prm.update({'since': startDate, 'until': stopDate})
+    r = requests.get(repoURL, params=prm)
     data=r.json()
 
     # N to store the number of records in JSON
@@ -133,6 +141,7 @@ def countCommits(repoURL, startDate, stopDate, branch):
     # Make a list of authors
     for i in range(N):
         names.append(data[i]['commit']['author']['name'])
+        
     # Based on the list of authors names, we form a dictionary in which, opposite each author name, its number of commits
     # The author is added to the dictionary automatically if they do not exist yet, 
     # otherwise the number of his commits increases by 1
@@ -142,6 +151,7 @@ def countCommits(repoURL, startDate, stopDate, branch):
 
     # m stores the number of pages as a result of the request
     m = 2
+    
     # 60 is a limit on the number of requests for an unauthorized user
     while data != [] and m < 61:
         # reset the lists for the next check and save
@@ -149,15 +159,8 @@ def countCommits(repoURL, startDate, stopDate, branch):
         names = []
         
         # get the next page
-        if startDate == '':
-            if stopDate == '':
-                r = requests.get(repoURL, params={'branch': branch, 'page': m, 'per_page': 100})
-            else:
-                r = requests.get(repoURL, params={'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100})
-        elif if stopDate == '':
-            r = requests.get(repoURL, params={'since': startDate, 'branch': branch, 'page': m, 'per_page': 100})
-        else:
-            r = requests.get(repoURL, params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100})
+        prm.update({'page': m})
+        r = requests.get(repoURL, params=prm)
         
         # add to the results
         data = r.json()
@@ -167,9 +170,10 @@ def countCommits(repoURL, startDate, stopDate, branch):
         for c in names:
             d[c] = d.get(c,0) + 1
         
-        # little message for user
+        # little message for user for not to get bored
         print('Pages analyzed: '+str(m),end="\r")
         m+=1
+        
         # timeout so as not to exceed the number of requests per second
         time.sleep(0.5) 
 
@@ -177,7 +181,9 @@ def countCommits(repoURL, startDate, stopDate, branch):
     # No. Author   commits_count
     return sorted(d.items(), reverse=True,  key=lambda x: x[1])
         
-
+##################################################################################
+#                               MAIN PROGRAM
+##################################################################################      
 
 # Arguments of command line:
 #repoURL    :   URL address of a public repository
