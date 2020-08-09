@@ -2,6 +2,9 @@ import requests
 import json
 import time
 
+##################################################################################
+#                               Validate URL
+##################################################################################
 
 # According to the form validation messages on Create repository page,
 # Github repo's name should include alphanumeric symbols and '-', '_', '.'
@@ -35,7 +38,63 @@ def ValidRepoURL(repoURL):
         repo = url[1]
         return validRepo(repo) and validUser(user)
 
+        
+        
+##################################################################################
+#                               Validate date
+##################################################################################
 
+# if the date is valid and is in one of three types:
+# 1. YYYY-MM-DD
+# 2. DD-MM-YYYY 
+# 3. MMM-DD-YYYY
+def validDate(date):
+    sp = date.split('-')
+    if isYear(sp[0]) and isMonth(sp[1]) and isDay(sp[2]):
+        return 1
+    if isDay(sp[0]) and isMonth(sp[1]) and isYear(sp[2]):
+        return 2
+    if isMonth(sp[0]) and isDay(sp[1]) and isYear(sp[2]):
+        return 3
+    return 0
+
+# make the date valid for api filter: YYYY-MM-DD
+def validateDate(date):
+    vd = validDate(date)
+    if vd > 0:
+        if vd == 1:
+            return date
+        elif vd == 2:
+            ds = date.split('-')
+            return ds[2]+'-'+ds[1]+'-'+ds[0]
+        else:
+            ds = date.split('-')
+            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            return ds[2]+'-'+str(months.index(ds[0])+1)+'-'+ds[1]
+    else:
+        print('Wrond date. Input date in one of possible formats: YYYY-MM-DD, or DD-MM-YYYY or MMM-DD-YYYY (eg 2014-12-22, 22-12-2014 or Dec-22-2014)')
+        return ''
+
+# is the number a day
+def isDay(d):
+    if d.isdigit():
+        return 1 <= int(d) <= 31
+
+# is the number/string a month
+def isMonth(m):
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    if m in months:
+        return True
+    elif m.isdigit():
+        return 1 <= int(m) <= 12
+
+# is the number a year
+# Github was founded in 2008
+def isYear(y):
+    if y.isdigit():
+        return 2008 <= int(y) <= 2050
+        
+        
 # TODO1: сделать в виде параметров командной строки
 repoURL = "http://github.com/django/django"       #if is public 
 
