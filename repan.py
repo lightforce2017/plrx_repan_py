@@ -96,9 +96,9 @@ headers = {'User-Agent': user_agent, 'Accept': 'application/vnd.github.cloak-pre
 #########################################################
 #                  request для авторов коммитов
 #########################################################
-r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': 1, 'per_page': 100}, headers=headers)
-#r = requests.get('https://api.github.com/search/commits', params={'repo': 'django/django', 'until': stopDate, 'author-date': '<2016-01-01'}, headers=headers)
-#r = requests.get('https://api.github.com/search/commits', params={'q': 'repo:django/django+author-date:<2016-01-01'}, headers=headers)
+#r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': 1, 'per_page': 100}, headers=headers)
+r = requests.get('https://api.github.com/repos/django/django/pulls', params={'state': 'closed', 'base': branch, 'page': 1, 'per_page': 100}, headers=headers)
+
 
 # Парсим в JSON
 data=r.json()
@@ -111,44 +111,47 @@ N = len(data)
 names = []
 
 # Формируем список авторов
-for i in range(N):
-    names.append(data[i]['commit']['author']['name'])
+#for i in range(N):
+#    names.append(data[i]['commit']['author']['name'])
 # На основе списка авторов names формируем словарь, в котором напротив каждого имени автора его количество коммитов
 # Автор добавляется в словарь автоматически, если их еще нет, в ином случае количество его коммитов увеличивается на 1
-d = dict() 
+'''d = dict() 
 for c in names:
     d[c] = d.get(c,0) + 1
-
+'''
    
-
+f=open("scrap.json","a",encoding='utf-8')
+ss = json.dumps(data, indent=4, sort_keys=True)
+f.write('Page 1\n\n')
+f.write(ss)
 # m - количество страниц в результате запроса
 m = 2
-while data != []:
+while data != [] and m < 61:
     data = []
     names = []
     # получаем следующую страницу
-    r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100}, headers=headers)
+    #r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100}, headers=headers)
+    r = requests.get('https://api.github.com/repos/django/django/pulls', params={'state': 'closed', 'base': branch, 'page': m, 'per_page': 100}, headers=headers)
     # добавляем к нашим результатам
     data = r.json()
-    N = len(data)
-    for i in range(N):
-        names.append(data[i]['commit']['author']['name'])
-    for c in names:
-        d[c] = d.get(c,0) + 1
-    
-    print('Добавлена страница '+str(m),end="\r")
+    #N = len(data)
+    #for i in range(N):
+    #    names.append(data[i]['commit']['author']['name'])
+    #for c in names:
+    #    d[c] = d.get(c,0) + 1
+    f=open("scrap.json","a",encoding='utf-8')
+    ss = json.dumps(data, indent=4, sort_keys=True)
+    f.write('Page '+str(m)+'\n\n')
+    f.write(ss)
+    f.close()
+    print('Проанализировано страниц: '+str(m),end="\r")
     m+=1
     # таймаут, чтобы не превысить количество запросов в секунду
     
     time.sleep(0.5) 
 m -=1
-# ----- DEBUG start ------  
-#print(r.json())
-print('\nВсего ',m,'страниц\n\n')
-# ----- DEBUG end  -------
 
-
-
+'''
 # Сортируем авторов по количеству их коммитов, в убывающем порядке
 # Получаем список, где каждый элемент в виде:
 # номер. Имя_автора   количево_коммитов
@@ -159,6 +162,9 @@ for elem in listofTuples :
         break
     print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
     k+=1
+'''
+
+
 
 '''
 # TODO4: убрать из релиза
