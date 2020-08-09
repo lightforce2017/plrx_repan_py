@@ -57,7 +57,7 @@ def validateRepoURL(repo):
 # 1. YYYY-MM-DD
 # 2. DD-MM-YYYY 
 # 3. MMM-DD-YYYY
-def validDate(date):
+def dateType(date):
     sp = date.split('-')
     if isYear(sp[0]) and isMonth(sp[1]) and isDay(sp[2]):
         return 1
@@ -69,7 +69,7 @@ def validDate(date):
 
 # make the date valid for api filter: YYYY-MM-DD
 def validateDate(date):
-    vd = validDate(date)
+    vd = dateType(date)
     if vd > 0:
         if vd == 1:
             return date
