@@ -2,6 +2,8 @@ import requests
 import time
 import sys
 
+defBranch = 'master'
+
 ##################################################################################
 #                               Validate URL
 ##################################################################################
@@ -103,12 +105,17 @@ def isYear(y):
     if y.isdigit():
         return 2008 <= int(y) <= 2050
 
+##################################################################################
+#                               Validate branch
+##################################################################################
+def isValidBranch(br):
+    return ''.join(c for c in br if  c not in '-_./').isalpha()
 
 ##################################################################################
 #                               Count commits
 ##################################################################################
         
-def countCommits(repoURL, startDate, stopDate, branch='master'):
+def countCommits(repoURL, startDate, stopDate, branch):
     # startDate - start of period
     # stopDate - end of period
     # branch - branch for search within ('master' bu deafault)
@@ -142,7 +149,15 @@ def countCommits(repoURL, startDate, stopDate, branch='master'):
         names = []
         
         # get the next page
-        r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100})
+        if startDate == '':
+            if stopDate == '':
+                r = requests.get(repoURL, params={'branch': branch, 'page': m, 'per_page': 100})
+            else:
+                r = requests.get(repoURL, params={'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100})
+        elif if stopDate == '':
+            r = requests.get(repoURL, params={'since': startDate, 'branch': branch, 'page': m, 'per_page': 100})
+        else:
+            r = requests.get(repoURL, params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100})
         
         # add to the results
         data = r.json()
@@ -164,31 +179,104 @@ def countCommits(repoURL, startDate, stopDate, branch='master'):
         
 
 
-# Аргументы командной строки:
-#repoURL = "http://github.com/django/django"       #if is public 
-#startDate = '2014-12-22'
-#stopDate = '2017-01-19'
-#branch = 'master'
+# Arguments of command line:
+#repoURL    :   URL address of a public repository
+#startDate  :   date of the start of period
+#stopDate   :   date of the end of period
+#branch     :   name of the branch, deafult is 'master'
+#======   Format   =======
+# repoURL* start stop branch
+# *required args
+#
+# Flags (not necessary):
+# -f    only start date
+# -l    only stop date
+# Eg:
+# http://github.com/django/django -f 2014-12-22 stable/2.1.x
+# will search all commits at http://github.com/django/django from Dec/22/2014 in the 'stable/2.1.x' branch
+# http://github.com/django/django -l 2016-12-22
+# will search all commits at http://github.com/django/django before Dec/22/2016 in the 'master' branch
+# http://github.com/django/django
+# will search all commits at http://github.com/django/django at all time in the 'master' branch
 if __name__ == '__main__':
-    repoURL = "http://github.com/django/django"       #if is public 
-    startDate = '2014-12-22'
-    stopDate = '2017-01-19'
-    branch = 'master'
-    try:
-        user = sys.argv[1]
-    except IndexError:
-        print "Usage: %s <username>" % sys.argv[0]
-        sys.exit(1)
+    if len(sys.argv) == 1:
+        ms = '''Don't forget about args: 
+python repan.py repoURL* start stop branch
+where * is required arg
+-------------------------------
+Flags (not necessary):
+ -f    only start date
+ -l    only stop date
+-------------------------------
+ Eg:
+http://github.com/django/django -f 2014-12-22 stable/2.1.x
+will search all commits at http://github.com/django/django from Dec/22/2014 in the 'stable/2.1.x' branch
+    
+http://github.com/django/django -l 2016-12-22
+will search all commits at http://github.com/django/django before Dec/22/2016 in the 'master' branch (by default)
+
+http://github.com/django/django
+will search all commits at http://github.com/django/django at all time in the 'master' branch (by default)
+        '''
+        print(ms)
+    else:
+        repoURL = ''
+        startDate = '' 
+        stopDate = '' 
+        branch = 'master'
+        try:
+            repoURL = sys.argv[1]
+            if isValidRepoURL(repoURL):
+                repoURL = validateRepoURL(repoURL)
+            if len(sys.argv) == 3:
+                str = sys.argv[2]
+                if isValidBranch(str):
+                    branch = str
+                else:
+                    print('Invalid branch name.')
+                    sys.exit(1)
+            elif len(sys.argv) >= 4:
+                # -f startDate
+                if sys.agrv[3] == '-f':
+                    startDate = validateDate(sys.agrv[4])
+                    if startDate == '':
+                        sys.exit(1)
+                # -l stopDate
+                elif sys.agrv[3] == '-l':    
+                    stopDate = validateDate(sys.agrv[4])
+                    if stopDate == '':
+                        sys.exit(1)
+                # startDate stopDate
+                else:
+                    startDate = validateDate(sys.agrv[3])
+                    if startDate == '':
+                        sys.exit(1)
+                    stopDate = validateDate(sys.agrv[4])
+                    if stopDate == '':
+                        sys.exit(1)
+                
+            if len(sys.argv) == 5:
+                # branch
+                str = sys.argv[5]
+                if isValidBranch(str):
+                    branch = str
+                else:
+                    print('Invalid branch name.')
+                    sys.exit(1)
+            
+        except:
+            print('ERROR')
+            sys.exit(1)
+    
+        listofTuples = countCommits(repoURL, startDate, stopDate, branch)
+        k = 0
+        for elem in listofTuples :
+            if k>=30:
+                break
+            print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
+            k+=1
+
         
-    listofTuples = countCommits(repoURL, startDate, stopDate, branch)
-    k = 0
-    for elem in listofTuples :
-        if k>=30:
-            break
-        print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
-        k+=1
-
-
 
 
 
