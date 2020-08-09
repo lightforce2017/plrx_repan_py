@@ -8,7 +8,7 @@ import time
 
 # According to the form validation messages on Create repository page,
 # Github repo's name should include alphanumeric symbols and '-', '_', '.'
-def validRepo(repo):
+def isValidRepo(repo):
     return ''.join(c for c in repo if  c not in '-_.').isalpha()
 
 # Rules got from https://github.com/shinnn/github-username-regex:
@@ -17,14 +17,14 @@ def validRepo(repo):
 # + Github username cannot have multiple consecutive hyphens.
 # + Github username cannot begin or end with a hyphen.
 # + Maximum is 39 characters.
-def validUser(user):
+def isValidUser(user):
     alpha = ''.join(user.split('-')).isalpha()
     hyphens = user.find('--')==-1
     behyp = user.find('-')!=0 and user.find('-')!=len(user)-1
     maxlen = len(user)<=39
     return alpha and hyphens and behyp and maxlen
 
-def ValidRepoURL(repoURL):
+def isValidRepoURL(repoURL):
     if repoURL.find('github.com') == -1:
         print('Wrong repo URL. The address should be like this: http://github.com/author/repo.')
         return False
@@ -36,10 +36,19 @@ def ValidRepoURL(repoURL):
         url = url.split('github.com/')[1].split('/')
         user = url[0]
         repo = url[1]
-        return validRepo(repo) and validUser(user)
+        return isValidRepo(repo) and isValidUser(user)
 
-        
-        
+# Transform repoURL to request format, eg
+# http://github.com/usr/rep
+# to
+# https://api.github.com/repos/usr/rep/commits
+def validateRepoURL(repo):
+    data = repo.split('github.com/')[1].split('/')
+    usr = data[0]
+    rep = data[1]
+    return 'https://api.github.com/repos/'+usr+'/'+rep+'/commits'
+
+
 ##################################################################################
 #                               Validate date
 ##################################################################################
@@ -202,7 +211,7 @@ while data != [] and m < 61:
     data = []
     names = []
     # получаем следующую страницу
-    r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100}, headers=headers)
+    r = requests.get('https://api.github.com/repos/django/django/commits', params={'since': startDate, 'until': stopDate, 'branch': branch, 'page': m, 'per_page': 100})
     
     # добавляем к нашим результатам
     data = r.json()
