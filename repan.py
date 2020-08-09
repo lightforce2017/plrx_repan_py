@@ -83,7 +83,7 @@ def validateDate(date):
             months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
             return ds[2]+'-'+str(months.index(ds[0])+1)+'-'+ds[1]
     else:
-        print('Wrond date. Input date in one of possible formats: YYYY-MM-DD, or DD-MM-YYYY or MMM-DD-YYYY (eg 2014-12-22, 22-12-2014 or Dec-22-2014)')
+        print('Wrong date. Input date in one of possible formats: YYYY-MM-DD, or DD-MM-YYYY or MMM-DD-YYYY (eg 2014-12-22, 22-12-2014 or Dec-22-2014)')
         return ''
 
 # is the number a day
