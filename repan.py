@@ -1,4 +1,5 @@
 import requests
+from datetime import date
 import time
 import sys
 
@@ -88,22 +89,24 @@ def validateDate(date):
 
 # is the number a day
 def isDay(d):
-    if d.isdigit():
+    if 1 <= len(d) <= 2 and d.isdigit():
         return 1 <= int(d) <= 31
 
 # is the number/string a month
 def isMonth(m):
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    if m in months:
+    if len(n) == 3 and m in months:
         return True
-    elif m.isdigit():
+    elif 1 <= len(m) <= 2 and m.isdigit():
         return 1 <= int(m) <= 12
 
 # is the number a year
 # Github was founded in 2008
 def isYear(y):
-    if y.isdigit():
+    if len(y) == 4 and y.isdigit():
         return 2008 <= int(y) <= 2050
+    else:
+        return False
 
 ##################################################################################
 #                               Validate branch
@@ -242,24 +245,43 @@ will search all commits at http://github.com/django/django at all time in the 'm
                     print('Invalid branch name.')
                     sys.exit(1)
             elif len(sys.argv) >= 4:
+                today = date.today()
+                dn = today.strftime("%Y-%m-%d")
                 # -f startDate
-                if sys.agrv[3] == '-f':
+                if sys.agrv[3] == '-f': 
                     startDate = validateDate(sys.agrv[4])
                     if startDate == '':
+                        sys.exit(1)
+                    elif startDate > dn:
+                        print('Nobody knows what awaits us in the future.\nERROR! Start date must be earlier than today.')
                         sys.exit(1)
                 # -l stopDate
                 elif sys.agrv[3] == '-l':    
                     stopDate = validateDate(sys.agrv[4])
                     if stopDate == '':
                         sys.exit(1)
+                    elif stopDate > dn:
+                        print('It is not known how many commits there will be until '+stopDate+'. I will count until today, i.e. until '+dn+', okay?')
+                        stopDate = dn
                 # startDate stopDate
                 else:
                     startDate = validateDate(sys.agrv[3])
                     if startDate == '':
                         sys.exit(1)
+                    elif startDate > dn:
+                        print('Nobody knows what awaits us in the future.\nERROR! Start date must be earlier than today.')
+                        sys.exit(1)
                     stopDate = validateDate(sys.agrv[4])
                     if stopDate == '':
                         sys.exit(1)
+                    elif stopDate > dn:
+                        print('It is not known how many commits there will be until '+stopDate+'. I will count until today, i.e. until '+dn+', okay?')
+                        stopDate = dn
+                    if startDate > stopDate:
+                        print('I can\'t count in negative space-time.\nCheck the dates, you wrote the start date: '+startDate+', and the end date: '+stopDate+'.\nI cannot work in such conditions. Try again.')
+                        sys.exit(1)
+                    elif startDate == stopDate:
+                        print('Oh, I see you wanted to check the number of commits in one day, '+startDate+'. Now let\'s count them.')
                 
             if len(sys.argv) == 5:
                 # branch
@@ -276,6 +298,7 @@ will search all commits at http://github.com/django/django at all time in the 'm
     
         listofTuples = countCommits(repoURL, startDate, stopDate, branch)
         k = 0
+        print(f"{Num:3}. {Author:25} {Commits:6}")
         for elem in listofTuples :
             if k>=30:
                 break
