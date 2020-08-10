@@ -65,32 +65,33 @@ def test_rurl2():
 def test_rurl3():
     assert isValidRepoURL('github.com/author/repo') == True
 
+def test_rurl4():
+    assert isValidRepoURL('http://github.com/author/repo.') == True
+
+def test_rurl5():
+    assert isValidRepoURL('htp://github.com/author/repo') == True
+
+def test_rurl6():
+    assert isValidRepoURL('ttp://github.com/author/repo') == True
+
+def test_rurl7():
+    assert isValidRepoURL('tp://github.com/author/repo') == True
+
+def test_rurl8():
+    assert isValidRepoURL('p://github.com/author/repo') == True
+
+def test_rurl9():
+    assert isValidRepoURL('://github.com/author/repo') == True
+ 
+def test_rurl10():
+    assert isValidRepoURL('//github.com/author/repo') == True
+ 
+def test_rurl11():
+    assert isValidRepoURL('/github.com/author/repo') == True
+
 def test_rurlf():
     assert isValidRepoURL('author/repo') == False
 
-def test_rurlf2():
-    assert isValidRepoURL('http://github.com/author/repo.') == False
-
-def test_rurlf3():
-    assert isValidRepoURL('htp://github.com/author/repo') == False
-
-def test_rurlf4():
-    assert isValidRepoURL('ttp://github.com/author/repo') == False
-
-def test_rurlf5():
-    assert isValidRepoURL('tp://github.com/author/repo') == False
-
-def test_rurlf6():
-    assert isValidRepoURL('p://github.com/author/repo') == False
-
-def test_rurlf7():
-    assert isValidRepoURL('://github.com/author/repo') == False
- 
-def test_rurlf8():
-    assert isValidRepoURL('//github.com/author/repo') == False
- 
-def test_rurlf9():
-    assert isValidRepoURL('/github.com/author/repo') == False
     
 def test_rurlf10():
     assert isValidRepoURL('format C:') == False
@@ -104,23 +105,23 @@ def test_vrepo():
     
 # Github branch name should include alphanumeric symbols and '-', '_', '.', '/'
 def test_bname():
-    assert isValidRepo('branch123') == True
+    assert isValidBranch('branch123') == True
  
 def test_bname2():
-    assert isValidRepo('branch-123') == True
+    assert isValidBranch('branch-123') == True
 
 def test_bname3():
-    assert isValidRepo('branch.123') == True
+    assert isValidBranch('branch.123') == True
 
 def test_bname4():
-    assert isValidRepo('branch/123') == True
+    assert isValidBranch('branch/123') == True
 
 def test_bnamef():
-    assert isValidRepo('branch#123') == False
+    assert isValidBranch('branch#123') == False
 
 def test_bnamef2():
-    assert isValidRepo('ветка') == False
+    assert isValidBranch('ветка') == False
 
 def test_bnamef3():
-    assert isValidRepo('format C:') == False
+    assert isValidBranch('format C:') == False
 
