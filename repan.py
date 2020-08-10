@@ -91,6 +91,8 @@ def validateDate(date):
 def isDay(d):
     if 1 <= len(d) <= 2 and d.isdigit():
         return 1 <= int(d) <= 31
+    else:
+        return False
 
 # is the number/string a month
 def isMonth(m):
@@ -99,6 +101,8 @@ def isMonth(m):
         return True
     elif 1 <= len(m) <= 2 and m.isdigit():
         return 1 <= int(m) <= 12
+    else:
+        return False
 
 # is the number a year
 # Github was founded in 2008
