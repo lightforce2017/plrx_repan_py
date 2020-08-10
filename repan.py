@@ -12,7 +12,7 @@ defBranch = 'master'
 # According to the form validation messages on Create repository page,
 # Github repo's name should include alphanumeric symbols and '-', '_', '.'
 def isValidRepo(repo):
-    return ''.join(c for c in repo if  c not in '-_.').isalpha()
+    return ''.join(c for c in repo if  c not in '-_.').isalnum()
 
 # Rules got from https://github.com/shinnn/github-username-regex:
 # According to the form validation messages on Join Github page,
@@ -21,7 +21,7 @@ def isValidRepo(repo):
 # + Github username cannot begin or end with a hyphen.
 # + Maximum is 39 characters.
 def isValidUser(user):
-    alpha = ''.join(user.split('-')).isalpha()
+    alpha = ''.join(user.split('-')).isalnum()
     hyphens = user.find('--')==-1
     behyp = user.find('-')!=0 and user.find('-')!=len(user)-1
     maxlen = len(user)<=39
@@ -116,7 +116,7 @@ def isYear(y):
 #                               Validate branch
 ##################################################################################
 def isValidBranch(br):
-    return ''.join(c for c in br if  c not in '-_./').isalpha()
+    return ''.join(c for c in br if  c not in '-_./').isalnum()
 
 ##################################################################################
 #                               Count commits
