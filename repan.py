@@ -128,62 +128,72 @@ def countCommits(repoURL, startDate, stopDate, branch):
     if startDate == '':
         if stopDate != '':
             prm.update({'until': stopDate})
-    elif if stopDate == '':
+    elif stopDate == '':
         prm.update({'since': startDate})
     else:
         prm.update({'since': startDate, 'until': stopDate})
     r = requests.get(repoURL, params=prm)
-    data=r.json()
+    if r.status_code == 200:
+        data=r.json()
 
-    # N to store the number of records in JSON
-    N = len(data)
-
-    # Future list with author names
-    names = []
-
-    # Make a list of authors
-    for i in range(N):
-        names.append(data[i]['commit']['author']['name'])
-        
-    # Based on the list of authors names, we form a dictionary in which, opposite each author name, its number of commits
-    # The author is added to the dictionary automatically if they do not exist yet, 
-    # otherwise the number of his commits increases by 1
-    d = dict() 
-    for c in names:
-        d[c] = d.get(c,0) + 1
-
-    # m stores the number of pages as a result of the request
-    m = 2
-    
-    # 60 is a limit on the number of requests for an unauthorized user
-    while data != [] and m < 61:
-        # reset the lists for the next check and save
-        data = []
-        names = []
-        
-        # get the next page
-        prm.update({'page': m})
-        r = requests.get(repoURL, params=prm)
-        
-        # add to the results
-        data = r.json()
+        # N to store the number of records in JSON
         N = len(data)
+
+        # Future list with author names
+        names = []
+
+        # Make a list of authors
         for i in range(N):
             names.append(data[i]['commit']['author']['name'])
+            
+        # Based on the list of authors names, we form a dictionary in which, opposite each author name, its number of commits
+        # The author is added to the dictionary automatically if they do not exist yet, 
+        # otherwise the number of his commits increases by 1
+        d = dict() 
         for c in names:
             d[c] = d.get(c,0) + 1
-        
-        # little message for user for not to get bored
-        print('Pages analyzed: '+str(m),end="\r")
-        m+=1
-        
-        # timeout so as not to exceed the number of requests per second
-        time.sleep(0.5) 
 
-    # Sort authors by the number of their commits, in descending order:
-    # No. Author   commits_count
-    return sorted(d.items(), reverse=True,  key=lambda x: x[1])
+        # m stores the number of pages as a result of the request
+        m = 2
         
+        # 60 is a limit on the number of requests for an unauthorized user
+        while data != [] and m < 61:
+            # reset the lists for the next check and save
+            data = []
+            names = []
+            
+            # get the next page
+            prm.update({'page': m})
+            r = requests.get(repoURL, params=prm)
+            if r.status_code == 200:
+                # add to the results
+                data = r.json()
+                N = len(data)
+                for i in range(N):
+                    names.append(data[i]['commit']['author']['name'])
+                for c in names:
+                    d[c] = d.get(c,0) + 1
+                
+                # little message for user for not to get bored
+                print("Pages analyzed: "+str(m),end="\r")
+                m+=1
+                
+                # timeout so as not to exceed the number of requests per second
+                time.sleep(0.5) 
+                
+            # if rate limit exceeded
+            elif r.status_code == 429:
+                print('Rate limit exceeded at page +'+str(m-1)+'. Results may be inaccurate by '+str(round(100-(m-1)/60*100, 2))+'%')
+                return sorted(d.items(), reverse=True,  key=lambda x: x[1])
+        # Sort authors by the number of their commits, in descending order:
+        # No. Author   commits_count
+        return sorted(d.items(), reverse=True,  key=lambda x: x[1])
+    elif r.status_code == 429:
+        print('Rate limit exceeded')
+        return {}
+    else:
+        return {}
+    
 ##################################################################################
 #                               MAIN PROGRAM
 ##################################################################################      
@@ -236,11 +246,21 @@ will search all commits at http://github.com/django/django at all time in the 'm
         try:
             repoURL = sys.argv[1]
             if isValidRepoURL(repoURL):
-                repoURL = validateRepoURL(repoURL)
+                r = requests.get(repoURL)
+                if r.status_code == 404:
+                    print('Repo '+ repoURL + ' doesn\'t exist.\nCheck URL, remove unnecessary characters, such as points, comma, etc.')
+                    sys.exit(1)
+                elif r.status_code == 200:
+                    repoURL = validateRepoURL(repoURL)
+                elif r.status_code == 429:
+                    print('Cannot check repo now. Wait for a little')
+                    sys.exit(1)
+            else:
+                sys.exit(1)
             if len(sys.argv) == 3:
-                str = sys.argv[2]
-                if isValidBranch(str):
-                    branch = str
+                s = sys.argv[2]
+                if isValidBranch(s):
+                    branch = s
                 else:
                     print('Invalid branch name.')
                     sys.exit(1)
@@ -285,9 +305,9 @@ will search all commits at http://github.com/django/django at all time in the 'm
                 
             if len(sys.argv) == 5:
                 # branch
-                str = sys.argv[5]
-                if isValidBranch(str):
-                    branch = str
+                s = sys.argv[5]
+                if isValidBranch(s):
+                    branch = s
                 else:
                     print('Invalid branch name.')
                     sys.exit(1)
@@ -298,13 +318,15 @@ will search all commits at http://github.com/django/django at all time in the 'm
     
         listofTuples = countCommits(repoURL, startDate, stopDate, branch)
         k = 0
-        print(f"{Num:3}. {Author:25} {Commits:6}")
-        for elem in listofTuples :
-            if k>=30:
-                break
-            print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
-            k+=1
-
+        if listofTuples != {}:
+            print(f"{'Num':3}. {'Author':25} {'Commits':6}")
+            for elem in listofTuples :
+                if k>=30:
+                    break
+                print(f"{k+1:3}. {elem[0]:25} {elem[1]:6}")
+                k+=1
+        else:
+            print('Cannot count. Please restart the program later (after an hour).')
         
 
 
