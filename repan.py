@@ -95,7 +95,7 @@ def isDay(d):
 # is the number/string a month
 def isMonth(m):
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    if len(n) == 3 and m in months:
+    if len(m) == 3 and m in months:
         return True
     elif 1 <= len(m) <= 2 and m.isdigit():
         return 1 <= int(m) <= 12
