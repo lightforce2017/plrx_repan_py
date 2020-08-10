@@ -29,7 +29,7 @@ def isValidUser(user):
 
 def isValidRepoURL(repoURL):
     if repoURL.find('github.com') == -1:
-        print('Wrong repo URL. The address should be like this: http://github.com/author/repo.')
+        print('Wrong repo URL. The address should be like this: http://github.com/author/repo')
         return False
     else:
         if repoURL.find('http://') > -1 or repoURL.find('https://') > -1:
